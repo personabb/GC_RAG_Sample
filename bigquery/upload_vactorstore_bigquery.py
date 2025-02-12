@@ -21,25 +21,6 @@ from langchain_community.vectorstores.utils import DistanceStrategy
 # 認証情報とプロジェクトIDを取得します。
 credentials, PROJECT_ID = google.auth.default()
 
-def load_text_files_from_folder(folder_path):
-    """
-    指定したフォルダ内のすべてのテキストファイル(.txt)を読み込む関数
-    
-    :param folder_path: 読み込むフォルダのパス
-    :return: 読み込んだドキュメントのリスト
-    """
-    # フォルダ内のすべての .txt ファイルを取得
-    text_files = glob.glob(os.path.join(folder_path, "*.txt"))
-
-    # すべてのテキストファイルを読み込む
-    documents = []
-    for file in text_files:
-        loader = TextLoader(file)
-        documents.extend(loader.load())  # 各ファイルの内容をリストに追加
-
-    print(f"Loaded {len(documents)} documents from {folder_path}")
-    return documents  # 読み込んだドキュメントのリストを返す
-
 
 def main():
     # --- 定数定義 ---
@@ -68,7 +49,7 @@ def main():
     else:
         print(f"add data to existing table ({table_id})")
     
-    # ベクターストアの初期化
+    # ベクターストアの定義
     vector_store = BigQueryVectorStore(
             project_id=PROJECT_ID,
             dataset_name=DATASET,
@@ -112,7 +93,7 @@ def main():
     texts = [doc.page_content for doc in doc_splits]
 
     # optional IDs とメタデータ
-    ids = ["i_" + str(i + 1) for i in range(len(texts))]
+    #ids = ["i_" + str(i + 1) for i in range(len(texts))]
     metadatas = [{"my_metadata": i} for i in range(len(texts))]
 
     # ---- dense embedding ----
