@@ -9,3 +9,5 @@ langchain_google_community
 pandas
 unstructured
 pyarrow
+google-cloud
+langchain-google-community[vertexaisearch]

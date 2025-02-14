@@ -1,3 +1,4 @@
+
 from typing import Any, List
 
 from langchain_google_vertexai.embeddings import VertexAIEmbeddings
@@ -13,6 +14,10 @@ from langchain_core.runnables import RunnablePassthrough
 
 from langchain_core.retrievers import BaseRetriever
 from pydantic import SkipValidation
+
+from langchain_google_community.vertex_rank import VertexAIRank
+from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
+
 
 import google.auth
 
@@ -87,11 +92,25 @@ def main():
     dence_retriever = VectorSearchRetriever(
         vector_store=vector_store,
         embedding_model=embedding_model,
-        k=5,
+        k=10,
     )
 
     # dence_retriever = vector_store.as_retriever() # search_kwargs={'k': 4}
 
+    # Reranker の準備 (Vertex AI Rank)
+    reranker = VertexAIRank(
+        project_id=PROJECT_ID,
+        location_id="global",
+        ranking_config="default_ranking_config",
+        title_field="source",
+        top_n=5,
+    )
+
+    # Reranker でさらに絞る ContextualCompressionRetriever
+    retriever_with_reranker = ContextualCompressionRetriever(
+        base_compressor=reranker,
+        base_retriever=dence_retriever
+    )
     
     # Prompt 定義
     prompt_template = """
@@ -113,7 +132,7 @@ def main():
 
     # チェーンを定義（retriever で文脈を取り、Prompt に当てはめて、LLM へ）
     chain = (
-        {"context": dence_retriever, "query": RunnablePassthrough()}
+        {"context": retriever_with_reranker, "query": RunnablePassthrough()}
         | prompt
         | llm
         | StrOutputParser()
@@ -123,6 +142,10 @@ def main():
     print("===== DenseRetriever の実行結果 =====")
     dense_docs = dence_retriever.invoke(query)
     print("\nDenseRetrieved Documents:", dense_docs)
+
+    print("===== Reranker後 の実行結果 =====")
+    ret_docs = retriever_with_reranker.invoke(query)
+    print("\nRetrieved Documents:", ret_docs)
 
     print("\n================= LLMの実行結果 =================")
     result = chain.invoke(query)

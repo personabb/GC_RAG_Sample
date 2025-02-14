@@ -11,6 +11,9 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 
+from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
+from langchain_google_community.vertex_rank import VertexAIRank
+
 from langchain_core.retrievers import BaseRetriever
 from pydantic import SkipValidation
 from langgraph.prebuilt import create_react_agent
@@ -123,7 +126,22 @@ def main():
 
     #dence_retriever = vector_store.as_retriever() # search_kwargs={'k': 4}
 
-    tool = dence_retriever.as_tool(
+    # Reranker の準備 (Vertex AI Rank)
+    reranker = VertexAIRank(
+        project_id=PROJECT_ID,
+        location_id="global",
+        ranking_config="default_ranking_config",
+        title_field="source",
+        top_n=5,
+    )
+
+    # Reranker でさらに絞る ContextualCompressionRetriever
+    retriever_with_reranker = ContextualCompressionRetriever(
+        base_compressor=reranker,
+        base_retriever=dence_retriever
+    )
+
+    tool = retriever_with_reranker.as_tool(
         name="Document_Search_Tool",
         description="サービスの規約に関する情報を取得するためのtoolです。"
     )
