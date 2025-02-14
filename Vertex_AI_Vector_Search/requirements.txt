@@ -1,0 +1,8 @@
+langchain
+langchain-community
+langchain-core
+langsmith
+langgraph
+langchain_google_genai
+langchain_google_vertexai
+langchain_google_community
